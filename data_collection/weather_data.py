@@ -47,4 +47,4 @@ df = pd.read_csv("/Users/admin/git_projects/football/data_collection/serie_a.csv
 
 r = requests.get("https://archive-api.open-meteo.com/v1/archive?latitude=38.103539&longitude=15.639756&start_date=2009-01-01&end_date=2009-01-01&timezone=Europe%2FBerlin&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max")
 print(r.json())
-print(pd.DataFrame(r.json()))
+print(pd.DataFrame(r.json()).T.iloc[-1])
