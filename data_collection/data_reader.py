@@ -1,8 +1,15 @@
+import sys
+import os
+root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(root_path)
+
 import pandas as pd
 import requests
 from io import StringIO
 import os
 import uuid
+
+from assets.cities import cities
 
 all_data = []
 def collect_data(year_start, year_end, write_csv=False, league='serie_a'):
@@ -55,18 +62,23 @@ def collect_data(year_start, year_end, write_csv=False, league='serie_a'):
         .assign(Div = league,
                 Date = pd.to_datetime(all_data_df['Date'], dayfirst=True),
                 game_id = [uuid.uuid4().hex[:8] for _ in range(len(all_data_df))],
-                TG = all_data_df['FTHG'] + all_data_df['FTAG'])
-        .loc[:, ['game_id'] + [col for col in all_data_df.columns if col != 'game_id'][:3] + ['TG'] + [col for col in all_data_df.columns if col != 'game_id'][4:] + [col for col in all_data_df.columns if col != 'TG']]
+                TG = all_data_df['FTHG'] + all_data_df['FTAG'],
+                city_name = all_data_df['HomeTeam'].map(lambda x: cities[x]['name'] if x in cities else None),
+                lat = all_data_df['HomeTeam'].map(lambda x: cities[x]['lat'] if x in cities else None),
+                lon = all_data_df['HomeTeam'].map(lambda x: cities[x]['lon'] if x in cities else None))
+        # .loc[:, ['game_id'] + [col for col in all_data_df.columns if col != 'game_id'][:3] + ['TG'] + [col for col in all_data_df.columns if col != 'game_id'][4:] + [col for col in all_data_df.columns if col != 'TG']]
         .dropna(how='all', axis=1)
     )
+    cols = ['game_id'] + [col for col in all_data_df.columns if col not in ['game_id', 'TG']][:3] + ['TG'] + [col for col in all_data_df.columns if col not in ['game_id', 'TG', 'TG']][3:]
+
+    all_data_df = all_data_df[cols]
     
     if write_csv:
         output_dir = 'data_collection'
         os.makedirs(output_dir, exist_ok=True)  # Ensure the directory exists before writing
         output_file = f'{output_dir}/{league}.csv'
         all_data_df.to_csv(output_file, index=False)
-    print(all_data_df.head())
     return all_data_df
 
 # Example usage
-collect_data(2003, 2020, write_csv=True, league='epl')
+collect_data(2003, 2020, write_csv=True, league='serie_a')
