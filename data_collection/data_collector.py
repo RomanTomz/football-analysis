@@ -41,6 +41,7 @@ class DataCollector:
         Collects data for the specified years.
 
         Args:
+            league (str): The name of the league.
             year_start (int): The starting year.
             year_end (int): The ending year.
             write_csv (bool, optional): Whether to write the collected data to a CSV file. Defaults to False.
@@ -65,7 +66,7 @@ class DataCollector:
 
         return self._process_data(write_csv)
 
-    def _construct_url(self, league: str,  year: int):
+    def _construct_url(self, league: str, year: int):
         """
         Constructs the URL for the data based on the league and year.
 
@@ -74,7 +75,7 @@ class DataCollector:
 
         Returns:
             str: The constructed URL.
-        
+
         Raises:
             ValueError: If the league is invalid.
         """
@@ -133,41 +134,41 @@ class DataCollector:
             all_data_df.to_csv(filename, index=False)
             print(f"Data written to {filename}")
         return all_data_df
-    
+
     @staticmethod
     def compute_team_statistics(df):
-            """
-            Compute team statistics based on the given DataFrame.
+        """
+        Compute team statistics based on the given DataFrame.
 
-            Parameters:
-            - df (pandas.DataFrame): The DataFrame containing the football match data.
+        Parameters:
+        - df (pandas.DataFrame): The DataFrame containing the football match data.
 
-            Returns:
-            - stats (pandas.DataFrame): The computed team statistics including home and away statistics, total statistics, and various ratios.
-            """
-            # Aggregate home and away statistics
-            home_stats = df.groupby('HomeTeam').agg(HomeGames=('HomeTeam', 'count'), HomeWins=('FTR', lambda x: (x == 'H').sum()), HomeDraws=('FTR', lambda x: (x == 'D').sum()), HomeGoals=('FTHG', 'sum'))
-            away_stats = df.groupby('AwayTeam').agg(AwayGames=('AwayTeam', 'count'), AwayWins=('FTR', lambda x: (x == 'A').sum()), AwayDraws=('FTR', lambda x: (x == 'D').sum()), AwayGoals=('FTAG', 'sum'))
+        Returns:
+        - stats (pandas.DataFrame): The computed team statistics including home and away statistics, total statistics, and various ratios.
+        """
+        # Aggregate home and away statistics
+        home_stats = df.groupby('HomeTeam').agg(HomeGames=('HomeTeam', 'count'), HomeWins=('FTR', lambda x: (x == 'H').sum()), HomeDraws=('FTR', lambda x: (x == 'D').sum()), HomeGoals=('FTHG', 'sum'))
+        away_stats = df.groupby('AwayTeam').agg(AwayGames=('AwayTeam', 'count'), AwayWins=('FTR', lambda x: (x == 'A').sum()), AwayDraws=('FTR', lambda x: (x == 'D').sum()), AwayGoals=('FTAG', 'sum'))
 
-            # Merge home and away statistics
-            stats = home_stats.merge(away_stats, left_index=True, right_index=True, how='outer').fillna(0)
+        # Merge home and away statistics
+        stats = home_stats.merge(away_stats, left_index=True, right_index=True, how='outer').fillna(0)
 
-            # Calculate total statistics
-            stats['TotalGames'] = stats['HomeGames'] + stats['AwayGames']
-            stats['TotalWins'] = stats['HomeWins'] + stats['AwayWins']
-            stats['TotalDraws'] = stats['HomeDraws'] + stats['AwayDraws']
-            stats['TotalGoals'] = stats['HomeGoals'] + stats['AwayGoals']
+        # Calculate total statistics
+        stats['TotalGames'] = stats['HomeGames'] + stats['AwayGames']
+        stats['TotalWins'] = stats['HomeWins'] + stats['AwayWins']
+        stats['TotalDraws'] = stats['HomeDraws'] + stats['AwayDraws']
+        stats['TotalGoals'] = stats['HomeGoals'] + stats['AwayGoals']
 
-            # Calculate ratios
-            stats['WinRatio'] = stats['TotalWins'] / stats['TotalGames']
-            stats['DrawRatio'] = stats['TotalDraws'] / stats['TotalGames']
-            stats['HomeWinRatio'] = stats['HomeWins'] / stats['HomeGames']
-            stats['AwayWinRatio'] = stats['AwayWins'] / stats['AwayGames']
-            stats['HomeGoalRatio'] = stats['HomeGoals'] / stats['HomeGames']
-            stats['AwayGoalRatio'] = stats['AwayGoals'] / stats['AwayGames']
-            stats['TotalGoalRatio'] = stats['TotalGoals'] / stats['TotalGames']
+        # Calculate ratios
+        stats['WinRatio'] = stats['TotalWins'] / stats['TotalGames']
+        stats['DrawRatio'] = stats['TotalDraws'] / stats['TotalGames']
+        stats['HomeWinRatio'] = stats['HomeWins'] / stats['HomeGames']
+        stats['AwayWinRatio'] = stats['AwayWins'] / stats['AwayGames']
+        stats['HomeGoalRatio'] = stats['HomeGoals'] / stats['HomeGames']
+        stats['AwayGoalRatio'] = stats['AwayGoals'] / stats['AwayGames']
+        stats['TotalGoalRatio'] = stats['TotalGoals'] / stats['TotalGames']
 
-            return stats.reset_index().rename(columns={'index': 'Team'})
+        return stats.reset_index().rename(columns={'index': 'Team'})
 
 if __name__ == "__main__":
     # example usage
