@@ -71,7 +71,11 @@ for index, row in tqdm(all_data_df.iterrows(), total=all_data_df.shape[0]):
     weather_data_list.append(weather_data)
 
 weather_data_df = pd.DataFrame(weather_data_list)
-all_data_df = pd.merge(all_data_df, weather_data_df, on='game_id')
+all_data_df = (
+    pd
+    .merge(all_data_df, weather_data_df, on='game_id')
+    .assign(avg_temp = lambda df_: (df_['temperature_2m_max'] + df_['temperature_2m_min']) / 2)
+               )
 
 print(weather_data_df)
 
