@@ -2,6 +2,7 @@ import pandas as pd
 import unittest
 from unittest.mock import patch
 from data_collection.data_collector import DataCollector
+import os
 
 class TestDataCollector(unittest.TestCase):
     def setUp(self):
@@ -15,6 +16,10 @@ class TestDataCollector(unittest.TestCase):
             })
         ]
         self.data_collector.league = "Premier League"
+    def tearDown(self):
+        for file in os.listdir():
+            if file.endswith(".csv"):
+                os.remove(file)
 
     def test_process_data_returns_dataframe(self):
         result = self.data_collector._process_data(write_csv=False)
