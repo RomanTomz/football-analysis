@@ -35,7 +35,7 @@ class DataCollector:
         self.league = league
         self.all_data = []
 
-    def collect_data(self, year_start, year_end, write_csv=False):
+    def collect_data(self, year_start: int, year_end: int, write_csv=False):
         """
         Collects data for the specified years.
 
@@ -64,7 +64,7 @@ class DataCollector:
 
         return self._process_data(write_csv)
 
-    def _construct_url(self, year):
+    def _construct_url(self, year: int):
         """
         Constructs the URL for the data based on the league and year.
 
@@ -84,7 +84,7 @@ class DataCollector:
         else:
             raise ValueError("Invalid league. Must be 'serie_a' or 'epl'.")
 
-    def _process_data(self, write_csv):
+    def _process_data(self, write_csv: bool) -> pd.DataFrame:
         """
         Processes the collected data and returns a DataFrame.
 
@@ -135,6 +135,6 @@ class DataCollector:
 
 # example usage
 dc = DataCollector(league="serie_a")
-data = dc.collect_data(2003, 2023, write_csv=True)
+data = dc.collect_data(2003, 2023, write_csv=False)
 # sample output
 print(data.head())
