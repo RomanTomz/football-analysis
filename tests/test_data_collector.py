@@ -5,7 +5,7 @@ from data_collection.data_collector import DataCollector
 
 class TestDataCollector(unittest.TestCase):
     def setUp(self):
-        self.data_collector = DataCollector()
+        self.data_collector = DataCollector(league="serie_a")
         self.data_collector.all_data = [
             pd.DataFrame({
                 "Date": ["2022-01-01", "2022-01-02"],

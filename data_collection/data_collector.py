@@ -1,8 +1,12 @@
 import pandas as pd
 import requests
 from io import StringIO
-import os
 import uuid
+
+import sys
+import os
+root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(root_path)
 
 from assets.cities import cities
 
@@ -126,5 +130,7 @@ class DataCollector:
         return all_data_df
 
 # example usage
-# dc = DataCollector(league="serie_a")
-# data = dc.collect_data(2015, 2019, write_csv=True)
+dc = DataCollector(league="serie_a")
+data = dc.collect_data(2015, 2019, write_csv=False)
+
+print(data.head())
