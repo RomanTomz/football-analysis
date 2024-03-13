@@ -27,17 +27,16 @@ class DataCollector:
         _process_data(write_csv): Processes the collected data and returns a DataFrame.
     """
 
-    def __init__(self, league: str):
+    def __init__(self):
         """
         Initializes a DataCollector object.
 
         Args:
             league (str): The league for which data is collected ('serie_a' or 'epl').
         """
-        self.league = league
         self.all_data = []
 
-    def collect_data(self, year_start: int, year_end: int, write_csv=False):
+    def collect_data(self, league: str, year_start: int, year_end: int, write_csv=False):
         """
         Collects data for the specified years.
 
@@ -66,7 +65,7 @@ class DataCollector:
 
         return self._process_data(write_csv)
 
-    def _construct_url(self, year: int):
+    def _construct_url(self, league: str,  year: int):
         """
         Constructs the URL for the data based on the league and year.
 
@@ -170,10 +169,12 @@ class DataCollector:
 
             return stats.reset_index().rename(columns={'index': 'Team'})
 
-# example usage
-dc = DataCollector(league="serie_a")
-data = dc.collect_data(2003, 2023, write_csv=False)
-# sample output
-teams_stats = dc.compute_team_statistics(data)
+if __name__ == "__main__":
+    # example usage
+    dc = DataCollector(league="serie_a")
+    data = dc.collect_data(2003, 2023, write_csv=False)
+    # sample output
+    teams_stats = dc.compute_team_statistics(data)
 
-print(teams_stats.head())
+    print(teams_stats.head())
+
