@@ -98,7 +98,11 @@ class DataCollector:
         all_data_df = (
             all_data_df.assign(
                 Div=self.league,
-                Date=pd.to_datetime(all_data_df["Date"], dayfirst=True),
+                Date=lambda x: pd.to_datetime(x['Date'], dayfirst=True),
+                season=lambda x: [
+                    f"{date.year}/{str(date.year + 1)}" if date.month >= 8 else f"{date.year - 1}/{date.year}"
+                    for date in pd.to_datetime(x['Date'], dayfirst=True)
+                ],
                 game_id=[uuid.uuid4().hex[:8] for _ in range(len(all_data_df))],
                 TG=all_data_df["FTHG"] + all_data_df["FTAG"],
                 city_name=all_data_df["HomeTeam"].map(

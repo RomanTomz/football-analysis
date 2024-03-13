@@ -74,7 +74,9 @@ weather_data_df = pd.DataFrame(weather_data_list)
 all_data_df = (
     pd
     .merge(all_data_df, weather_data_df, on='game_id')
-    .assign(avg_temp = lambda df_: (df_['temperature_2m_max'] + df_['temperature_2m_min']) / 2)
+    .assign(avg_temp = lambda df_: (df_['temperature_2m_max'] + df_['temperature_2m_min']) / 2,
+            Date = pd.to_datetime(all_data_df['Date'], dayfirst=True))
+    
                )
 
 print(weather_data_df)
