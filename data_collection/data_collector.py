@@ -13,7 +13,7 @@ from assets.cities import cities
 
 class DataCollector:
     """
-    A class for collecting football data from the web.
+    A class for collecting football data from the https://www.football-data.co.uk.
 
     Attributes:
         league (str): The league for which data is collected ('serie_a' or 'epl').
@@ -128,13 +128,13 @@ class DataCollector:
 
         all_data_df = all_data_df[cols]
         if write_csv:
-            filename = f"{self.league}_{uuid.uuid4()}.csv"
+            filename = f"{self.league}.csv"
             all_data_df.to_csv(filename, index=False)
             print(f"Data written to {filename}")
         return all_data_df
 
 # example usage
 dc = DataCollector(league="serie_a")
-data = dc.collect_data(2015, 2019, write_csv=False)
+data = dc.collect_data(2003, 2023, write_csv=True)
 # sample output
 print(data.head())
