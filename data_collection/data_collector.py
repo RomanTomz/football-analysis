@@ -3,6 +3,8 @@ import requests
 from io import StringIO
 import uuid
 
+from tqdm import tqdm
+
 import sys
 import os
 root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -47,7 +49,7 @@ class DataCollector:
         Returns:
             pandas.DataFrame: The processed data as a DataFrame.
         """
-        for year in range(year_start, year_end + 1):
+        for year in tqdm(range(year_start, year_end + 1), desc="Fetching data"):
             url = self._construct_url(year)
             try:
                 r = requests.get(url)
@@ -132,9 +134,46 @@ class DataCollector:
             all_data_df.to_csv(filename, index=False)
             print(f"Data written to {filename}")
         return all_data_df
+    
+    @staticmethod
+    def compute_team_statistics(df):
+            """
+            Compute team statistics based on the given DataFrame.
+
+            Parameters:
+            - df (pandas.DataFrame): The DataFrame containing the football match data.
+
+            Returns:
+            - stats (pandas.DataFrame): The computed team statistics including home and away statistics, total statistics, and various ratios.
+            """
+            # Aggregate home and away statistics
+            home_stats = df.groupby('HomeTeam').agg(HomeGames=('HomeTeam', 'count'), HomeWins=('FTR', lambda x: (x == 'H').sum()), HomeDraws=('FTR', lambda x: (x == 'D').sum()), HomeGoals=('FTHG', 'sum'))
+            away_stats = df.groupby('AwayTeam').agg(AwayGames=('AwayTeam', 'count'), AwayWins=('FTR', lambda x: (x == 'A').sum()), AwayDraws=('FTR', lambda x: (x == 'D').sum()), AwayGoals=('FTAG', 'sum'))
+
+            # Merge home and away statistics
+            stats = home_stats.merge(away_stats, left_index=True, right_index=True, how='outer').fillna(0)
+
+            # Calculate total statistics
+            stats['TotalGames'] = stats['HomeGames'] + stats['AwayGames']
+            stats['TotalWins'] = stats['HomeWins'] + stats['AwayWins']
+            stats['TotalDraws'] = stats['HomeDraws'] + stats['AwayDraws']
+            stats['TotalGoals'] = stats['HomeGoals'] + stats['AwayGoals']
+
+            # Calculate ratios
+            stats['WinRatio'] = stats['TotalWins'] / stats['TotalGames']
+            stats['DrawRatio'] = stats['TotalDraws'] / stats['TotalGames']
+            stats['HomeWinRatio'] = stats['HomeWins'] / stats['HomeGames']
+            stats['AwayWinRatio'] = stats['AwayWins'] / stats['AwayGames']
+            stats['HomeGoalRatio'] = stats['HomeGoals'] / stats['HomeGames']
+            stats['AwayGoalRatio'] = stats['AwayGoals'] / stats['AwayGames']
+            stats['TotalGoalRatio'] = stats['TotalGoals'] / stats['TotalGames']
+
+            return stats.reset_index().rename(columns={'index': 'Team'})
 
 # example usage
 dc = DataCollector(league="serie_a")
 data = dc.collect_data(2003, 2023, write_csv=False)
 # sample output
-print(data.head())
+teams_stats = dc.compute_team_statistics(data)
+
+print(teams_stats.head())
