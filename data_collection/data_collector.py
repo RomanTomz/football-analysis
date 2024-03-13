@@ -132,5 +132,5 @@ class DataCollector:
 # example usage
 dc = DataCollector(league="serie_a")
 data = dc.collect_data(2015, 2019, write_csv=False)
-
+# sample output
 print(data.head())

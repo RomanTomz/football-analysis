@@ -17,8 +17,6 @@ from tqdm import tqdm
 import pandas as pd
 
 
-# r = requests.get("https://archive-api.open-meteo.com/v1/archive?latitude=51.5&longitude=0.127&start_date=2009-01-01&end_date=2009-01-02&hourly=temperature_2m,rain,wind_speed_10m,soil_moisture_0_to_7cm")
-# # print(r.json())
 
 def get_coordinates(cities_dict: dict):
     ctx = ssl.create_default_context(cafile=certifi.where())
