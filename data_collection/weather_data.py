@@ -66,7 +66,9 @@ weather_data_list = []
 
 # Wrap the iteration with tqdm for a progress bar
 for index, row in tqdm(all_data_df.iterrows(), total=all_data_df.shape[0]):
+
     weather_data = fetch_weather_data(row['lat'], row['lon'], row['Date'])
+    print(weather_data)
     weather_data['game_id'] = row['game_id']
     weather_data_list.append(weather_data)
 
@@ -81,4 +83,4 @@ all_data_df = (
 
 print(weather_data_df)
 
-all_data_df.to_csv("/Users/admin/git_projects/football/data_collection/serie_a_weather.csv", index=False)
+all_data_df.to_csv("/Users/admin/git_projects/football/data_collection/serie_a_weather_2.csv", index=False)

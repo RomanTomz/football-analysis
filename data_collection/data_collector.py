@@ -136,7 +136,7 @@ class DataCollector:
         return all_data_df
     
     @staticmethod
-    def compute_team_statistics(df):
+    def compute_team_statistics(df, year_start=None, year_end=None):
             """
             Compute team statistics based on the given DataFrame.
 
@@ -147,8 +147,23 @@ class DataCollector:
             - stats (pandas.DataFrame): The computed team statistics including home and away statistics, total statistics, and various ratios.
             """
             # Aggregate home and away statistics
-            home_stats = df.groupby('HomeTeam').agg(HomeGames=('HomeTeam', 'count'), HomeWins=('FTR', lambda x: (x == 'H').sum()), HomeDraws=('FTR', lambda x: (x == 'D').sum()), HomeGoals=('FTHG', 'sum'))
-            away_stats = df.groupby('AwayTeam').agg(AwayGames=('AwayTeam', 'count'), AwayWins=('FTR', lambda x: (x == 'A').sum()), AwayDraws=('FTR', lambda x: (x == 'D').sum()), AwayGoals=('FTAG', 'sum'))
+            # make the year_start and year_end optional
+            if year_start is not None and year_end is not None:
+                df_filtered = df.query(f"{year_start} <= Date.dt.year <= {year_end}")
+            else:
+                df_filtered = df
+            home_stats = (
+                df_filtered
+                .query(f"{year_start} <= Date.dt.year <= {year_end}")
+                .groupby('HomeTeam')
+                .agg(HomeGames=('HomeTeam', 'count'), HomeWins=('FTR', lambda x: (x == 'H').sum()), HomeDraws=('FTR', lambda x: (x == 'D').sum()), HomeGoals=('FTHG', 'sum'))
+                          )
+            away_stats = (
+                df_filtered
+                .query(f"{year_start} <= Date.dt.year <= {year_end}")
+                .groupby('AwayTeam')
+                .agg(AwayGames=('AwayTeam', 'count'), AwayWins=('FTR', lambda x: (x == 'A').sum()), AwayDraws=('FTR', lambda x: (x == 'D').sum()), AwayGoals=('FTAG', 'sum'))
+                          )
 
             # Merge home and away statistics
             stats = home_stats.merge(away_stats, left_index=True, right_index=True, how='outer').fillna(0)
