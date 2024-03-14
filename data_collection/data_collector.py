@@ -154,13 +154,11 @@ class DataCollector:
                 df_filtered = df
             home_stats = (
                 df_filtered
-                .query(f"{year_start} <= Date.dt.year <= {year_end}")
                 .groupby('HomeTeam')
                 .agg(HomeGames=('HomeTeam', 'count'), HomeWins=('FTR', lambda x: (x == 'H').sum()), HomeDraws=('FTR', lambda x: (x == 'D').sum()), HomeGoals=('FTHG', 'sum'))
                           )
             away_stats = (
                 df_filtered
-                .query(f"{year_start} <= Date.dt.year <= {year_end}")
                 .groupby('AwayTeam')
                 .agg(AwayGames=('AwayTeam', 'count'), AwayWins=('FTR', lambda x: (x == 'A').sum()), AwayDraws=('FTR', lambda x: (x == 'D').sum()), AwayGoals=('FTAG', 'sum'))
                           )
