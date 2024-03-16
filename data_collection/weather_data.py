@@ -62,25 +62,55 @@ def fetch_weather_data(lat, lon, date):
     else:
         return {'temperature_2m_max': None, 'temperature_2m_min': None, 'precipitation_sum': None, 'wind_speed_10m_max': None}
 
-weather_data_list = []
+from tqdm import tqdm
+import pandas as pd
 
-# Wrap the iteration with tqdm for a progress bar
-for index, row in tqdm(all_data_df.iterrows(), total=all_data_df.shape[0]):
+def fetch_and_merge_weather_data(all_data_df, fetch_weather_data):
+    """
+    Fetches weather data for each row in the input DataFrame and merges it back.
 
-    weather_data = fetch_weather_data(row['lat'], row['lon'], row['Date'])
-    print(weather_data)
-    weather_data['game_id'] = row['game_id']
-    weather_data_list.append(weather_data)
+    Parameters:
+    - all_data_df (pd.DataFrame): DataFrame containing the game data with latitude, longitude, and date.
+    - fetch_weather_data (function): Function to fetch weather data given latitude, longitude, and date.
 
-weather_data_df = pd.DataFrame(weather_data_list)
-all_data_df = (
-    pd
-    .merge(all_data_df, weather_data_df, on='game_id')
-    .assign(avg_temp = lambda df_: (df_['temperature_2m_max'] + df_['temperature_2m_min']) / 2,
-            Date = pd.to_datetime(all_data_df['Date'], dayfirst=True))
-    
-               )
+    Returns:
+    - pd.DataFrame: The input DataFrame merged with the fetched weather data.
+    """
 
-print(weather_data_df)
+    weather_data_list = []
 
-all_data_df.to_csv("/Users/admin/git_projects/football/data_collection/serie_a_weather_2.csv", index=False)
+    # Iterate over the DataFrame rows with a progress bar
+    for index, row in tqdm(all_data_df.iterrows(), total=all_data_df.shape[0]):
+        weather_data = fetch_weather_data(row['lat'], row['lon'], row['Date'])
+        print(weather_data)
+        weather_data['game_id'] = row['game_id']
+        weather_data_list.append(weather_data)
+
+    # Convert the list of weather data to a DataFrame
+    weather_data_df = pd.DataFrame(weather_data_list)
+
+    # Merge the weather data with the original DataFrame
+    merged_df = (
+        pd
+        .merge(all_data_df, weather_data_df, on='game_id')
+        .assign(avg_temp=lambda df_: (df_['temperature_2m_max'] + df_['temperature_2m_min']) / 2,
+                Date=pd.to_datetime(all_data_df['Date'], dayfirst=True))
+    )
+
+    return merged_df
+
+url = " https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/firenze/2019-01-01/2019-01-01?unitGroup=metric&key=ZMM2U9XUSJ6UV37L4L49NQACY&options=preview&contentType=json"
+
+headers = {
+    'Accept': 'application/json',
+    'user-agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15',
+    "referer": "https://www.visualcrossing.com/weather-data"
+}
+
+r = requests.get(url, headers=headers)
+# print(pd.DataFrame(r.json()))
+print(r.json())
+
+# print(weather_data_df)
+
+# all_data_df.to_csv("/Users/admin/git_projects/football/data_collection/serie_a_weather_2.csv", index=False)
