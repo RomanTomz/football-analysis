@@ -99,16 +99,6 @@ def fetch_and_merge_weather_data(all_data_df, fetch_weather_data):
 
     return merged_df
 
-# url = " https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{name}/{date}/{date}?unitGroup=metric&key=ZMM2U9XUSJ6UV37L4L49NQACY&options=preview&contentType=json"
-
-# headers = {
-#     'Accept': 'application/json',
-#     'user-agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15',
-#     "referer": "https://www.visualcrossing.com/weather-data"
-# }
-
-# r = requests.get(url, headers=headers)
-# print(r.json())
 
 def fetch_weather_data(name, date, api_key="ZMM2U9XUSJ6UV37L4L49NQACY"):
     formatted_date = pd.to_datetime(date).strftime('%Y-%m-%d')
@@ -148,6 +138,16 @@ def fetch_weather_data(name, date, api_key="ZMM2U9XUSJ6UV37L4L49NQACY"):
 
 
 def fetch_and_merge_weather_data(all_data_df, fetch_weather_data):
+    """
+    Fetches weather data for each row in the given DataFrame and merges it with the original DataFrame.
+
+    Args:
+        all_data_df (pandas.DataFrame): The original DataFrame containing game data.
+        fetch_weather_data (function): A function that fetches weather data for a given city and date.
+
+    Returns:
+        pandas.DataFrame: The merged DataFrame containing the original game data and the fetched weather data.
+    """
     weather_data_list = []
 
     for index, row in tqdm(all_data_df.iterrows(), total=all_data_df.shape[0]):
