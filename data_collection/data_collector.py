@@ -4,6 +4,7 @@ from io import StringIO
 import uuid
 
 from tqdm import tqdm
+from time import sleep
 
 import sys
 import os
@@ -36,6 +37,9 @@ class DataCollector:
         """
         self.league = league
         self.all_data = []
+        self.headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+        }
 
     def collect_data(self, year_start: int, year_end: int, write_csv=False):
         """
@@ -52,7 +56,8 @@ class DataCollector:
         for year in tqdm(range(year_start, year_end + 1), desc="Fetching data"):
             url = self._construct_url(year)
             try:
-                r = requests.get(url)
+                r = requests.get(url, headers=self.headers)
+                sleep(0.5)
                 if r.status_code == 200:
                     data = StringIO(r.text)
                     df = pd.read_csv(data, on_bad_lines="skip")
@@ -121,11 +126,11 @@ class DataCollector:
         )
         cols = (
             ["game_id"]
-            + [col for col in all_data_df.columns if col not in ["game_id", "TG"]][:3]
+            + [col for col in all_data_df.columns if col not in ["game_id", "TG"]][:4]
             + ["TG"]
             + [
                 col for col in all_data_df.columns if col not in ["game_id", "TG", "TG"]
-            ][3:]
+            ][4:]
         )
 
         all_data_df = all_data_df[cols]
