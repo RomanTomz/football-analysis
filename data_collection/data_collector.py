@@ -64,7 +64,7 @@ class DataCollector:
                 try:
                     url = self._construct_url(year)
                     r = requests.get(url, headers=self.headers)
-                    sleep(0.5)  # Be respectful and avoid hammering the server
+                    sleep(0.5)  
                     if r.status_code == 200:
                         data = StringIO(r.text)
                         df = pd.read_csv(data, on_bad_lines="skip")
