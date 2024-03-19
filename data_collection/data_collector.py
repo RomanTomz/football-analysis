@@ -8,6 +8,7 @@ from time import sleep
 
 import sys
 import os
+
 root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(root_path)
 
@@ -53,21 +54,37 @@ class DataCollector:
         Returns:
             pandas.DataFrame: The processed data as a DataFrame.
         """
+        max_attempts = 3
+
         for year in tqdm(range(year_start, year_end + 1), desc="Fetching data"):
-            url = self._construct_url(year)
-            try:
-                r = requests.get(url, headers=self.headers)
-                sleep(0.5)
-                if r.status_code == 200:
-                    data = StringIO(r.text)
-                    df = pd.read_csv(data, on_bad_lines="skip")
-                    self.all_data.append(df)
-                else:
+            success = False
+            attempt = 0
+
+            while attempt < max_attempts and not success:
+                try:
+                    url = self._construct_url(year)
+                    r = requests.get(url, headers=self.headers)
+                    sleep(0.5)  # Be respectful and avoid hammering the server
+                    if r.status_code == 200:
+                        data = StringIO(r.text)
+                        df = pd.read_csv(data, on_bad_lines="skip")
+                        self.all_data.append(df)
+                        success = True
+                    else:
+                        print(
+                            f"Attempt {attempt + 1}: Data for season {year}/{year + 1} not found or could not be retrieved."
+                        )
+                    attempt += 1
+                except requests.RequestException as e:
                     print(
-                        f"Data for season {year}/{year+1} not found or could not be retrieved."
+                        f"Attempt {attempt + 1}: Request failed for season {year}/{year + 1}: {e}"
                     )
-            except requests.RequestException as e:
-                print(f"Request failed for season {year}/{year+1}: {e}")
+                    attempt += 1
+
+            if not success:
+                print(
+                    f"Failed to fetch data for season {year}/{year + 1} after {max_attempts} attempts."
+                )
 
         return self._process_data(write_csv)
 
@@ -80,7 +97,7 @@ class DataCollector:
 
         Returns:
             str: The constructed URL.
-        
+
         Raises:
             ValueError: If the league is invalid.
         """
@@ -102,28 +119,29 @@ class DataCollector:
             pandas.DataFrame: The processed data as a DataFrame.
         """
         all_data_df = pd.concat(self.all_data, ignore_index=True)
-        all_data_df = (
-            all_data_df.assign(
-                Div=self.league,
-                Date=lambda x: pd.to_datetime(x['Date'], dayfirst=True),
-                season=lambda x: [
-                    f"{date.year}/{str(date.year + 1)}" if date.month >= 8 else f"{date.year - 1}/{date.year}"
-                    for date in pd.to_datetime(x['Date'], dayfirst=True)
-                ],
-                game_id=[uuid.uuid4().hex[:8] for _ in range(len(all_data_df))],
-                TG=all_data_df["FTHG"] + all_data_df["FTAG"],
-                city_name=all_data_df["HomeTeam"].map(
-                    lambda x: cities[x]["name"] if x in cities else None
-                ),
-                lat=all_data_df["HomeTeam"].map(
-                    lambda x: cities[x]["lat"] if x in cities else None
-                ),
-                lon=all_data_df["HomeTeam"].map(
-                    lambda x: cities[x]["lon"] if x in cities else None
-                ),
-            )
-            .dropna(how="all", axis=1)
-        )
+        all_data_df = all_data_df.assign(
+            Div=self.league,
+            Date=lambda x: pd.to_datetime(x["Date"], dayfirst=True),
+            season=lambda x: [
+                (
+                    f"{date.year}/{str(date.year + 1)}"
+                    if date.month >= 8
+                    else f"{date.year - 1}/{date.year}"
+                )
+                for date in pd.to_datetime(x["Date"], dayfirst=True)
+            ],
+            game_id=[uuid.uuid4().hex[:8] for _ in range(len(all_data_df))],
+            TG=all_data_df["FTHG"] + all_data_df["FTAG"],
+            city_name=all_data_df["HomeTeam"].map(
+                lambda x: cities[x]["name"] if x in cities else None
+            ),
+            lat=all_data_df["HomeTeam"].map(
+                lambda x: cities[x]["lat"] if x in cities else None
+            ),
+            lon=all_data_df["HomeTeam"].map(
+                lambda x: cities[x]["lon"] if x in cities else None
+            ),
+        ).dropna(how="all", axis=1)
         cols = (
             ["game_id"]
             + [col for col in all_data_df.columns if col not in ["game_id", "TG"]][:4]
@@ -139,61 +157,65 @@ class DataCollector:
             all_data_df.to_csv(filename, index=False)
             print(f"Data written to {filename}")
         return all_data_df
-    
+
     @staticmethod
     def compute_team_statistics(df, year_start=None, year_end=None):
-            """
-            Compute team statistics based on the given DataFrame.
+        """
+        Compute team statistics based on the given DataFrame.
 
-            Parameters:
-            - df (pandas.DataFrame): The DataFrame containing the football match data.
+        Parameters:
+        - df (pandas.DataFrame): The DataFrame containing the football match data.
 
-            Returns:
-            - stats (pandas.DataFrame): The computed team statistics including home and away statistics, total statistics, and various ratios.
-            """
-            # Aggregate home and away statistics
-            # make the year_start and year_end optional
-            if year_start is not None and year_end is not None:
-                df_filtered = df.query(f"{year_start} <= Date.dt.year <= {year_end}")
-            else:
-                df_filtered = df
-            home_stats = (
-                df_filtered
-                .groupby('HomeTeam')
-                .agg(HomeGames=('HomeTeam', 'count'), HomeWins=('FTR', lambda x: (x == 'H').sum()), HomeDraws=('FTR', lambda x: (x == 'D').sum()), HomeGoals=('FTHG', 'sum'))
-                          )
-            away_stats = (
-                df_filtered
-                .groupby('AwayTeam')
-                .agg(AwayGames=('AwayTeam', 'count'), AwayWins=('FTR', lambda x: (x == 'A').sum()), AwayDraws=('FTR', lambda x: (x == 'D').sum()), AwayGoals=('FTAG', 'sum'))
-                          )
+        Returns:
+        - stats (pandas.DataFrame): The computed team statistics including home and away statistics, total statistics, and various ratios.
+        """
+        # Aggregate home and away statistics
+        # make the year_start and year_end optional
+        if year_start is not None and year_end is not None:
+            df_filtered = df.query(f"{year_start} <= Date.dt.year <= {year_end}")
+        else:
+            df_filtered = df
+        home_stats = df_filtered.groupby("HomeTeam").agg(
+            HomeGames=("HomeTeam", "count"),
+            HomeWins=("FTR", lambda x: (x == "H").sum()),
+            HomeDraws=("FTR", lambda x: (x == "D").sum()),
+            HomeGoals=("FTHG", "sum"),
+        )
+        away_stats = df_filtered.groupby("AwayTeam").agg(
+            AwayGames=("AwayTeam", "count"),
+            AwayWins=("FTR", lambda x: (x == "A").sum()),
+            AwayDraws=("FTR", lambda x: (x == "D").sum()),
+            AwayGoals=("FTAG", "sum"),
+        )
 
-            # Merge home and away statistics
-            stats = home_stats.merge(away_stats, left_index=True, right_index=True, how='outer').fillna(0)
+        # Merge home and away statistics
+        stats = home_stats.merge(
+            away_stats, left_index=True, right_index=True, how="outer"
+        ).fillna(0)
 
-            # Calculate total statistics
-            stats['TotalGames'] = stats['HomeGames'] + stats['AwayGames']
-            stats['TotalWins'] = stats['HomeWins'] + stats['AwayWins']
-            stats['TotalDraws'] = stats['HomeDraws'] + stats['AwayDraws']
-            stats['TotalGoals'] = stats['HomeGoals'] + stats['AwayGoals']
+        # Calculate total statistics
+        stats["TotalGames"] = stats["HomeGames"] + stats["AwayGames"]
+        stats["TotalWins"] = stats["HomeWins"] + stats["AwayWins"]
+        stats["TotalDraws"] = stats["HomeDraws"] + stats["AwayDraws"]
+        stats["TotalGoals"] = stats["HomeGoals"] + stats["AwayGoals"]
 
-            # Calculate ratios
-            stats['WinRatio'] = stats['TotalWins'] / stats['TotalGames']
-            stats['DrawRatio'] = stats['TotalDraws'] / stats['TotalGames']
-            stats['HomeWinRatio'] = stats['HomeWins'] / stats['HomeGames']
-            stats['AwayWinRatio'] = stats['AwayWins'] / stats['AwayGames']
-            stats['HomeGoalRatio'] = stats['HomeGoals'] / stats['HomeGames']
-            stats['AwayGoalRatio'] = stats['AwayGoals'] / stats['AwayGames']
-            stats['TotalGoalRatio'] = stats['TotalGoals'] / stats['TotalGames']
+        # Calculate ratios
+        stats["WinRatio"] = stats["TotalWins"] / stats["TotalGames"]
+        stats["DrawRatio"] = stats["TotalDraws"] / stats["TotalGames"]
+        stats["HomeWinRatio"] = stats["HomeWins"] / stats["HomeGames"]
+        stats["AwayWinRatio"] = stats["AwayWins"] / stats["AwayGames"]
+        stats["HomeGoalRatio"] = stats["HomeGoals"] / stats["HomeGames"]
+        stats["AwayGoalRatio"] = stats["AwayGoals"] / stats["AwayGames"]
+        stats["TotalGoalRatio"] = stats["TotalGoals"] / stats["TotalGames"]
 
-            return stats.reset_index().rename(columns={'index': 'Team'})
+        return stats.reset_index().rename(columns={"index": "Team"})
+
 
 if __name__ == "__main__":
     # example usage
     dc = DataCollector(league="serie_a")
-    data = dc.collect_data(2003, 2023, write_csv=False)
+    data = dc.collect_data(2020, 2023, write_csv=False)
     # sample output
     teams_stats = dc.compute_team_statistics(data)
 
-    print(teams_stats.head())
-
+    print(data.head())
