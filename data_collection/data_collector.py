@@ -118,7 +118,7 @@ class DataCollector:
         Returns:
             pandas.DataFrame: The processed data as a DataFrame.
         """
-        all_data_df = pd.concat(self.all_data, ignore_index=True)
+        all_data_df = pd.concat(self.all_data, ignore_index=True).dropna(subset=["Date"])
         all_data_df = all_data_df.assign(
             Div=self.league,
             Date=lambda x: pd.to_datetime(x["Date"], dayfirst=True),

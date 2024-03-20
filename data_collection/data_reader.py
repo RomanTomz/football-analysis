@@ -80,5 +80,7 @@ def collect_data(year_start, year_end, write_csv=False, league='serie_a'):
         all_data_df.to_csv(output_file, index=False)
     return all_data_df
 
-# Example usage
-collect_data(2003, 2020, write_csv=True, league='serie_a')
+if __name__ == "__main__":
+    collect_data(2003, 2020, write_csv=True, league='serie_a')
+
+
