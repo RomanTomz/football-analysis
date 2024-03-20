@@ -8,7 +8,6 @@ import pandas as pd
 from data_collection.data_reader import collect_data
 
 
-df = pd.read_csv("/Users/admin/git_projects/football/data_collection/serie_a.csv")
 path = "/Users/admin/git_projects/football/data_collection/serie_a.csv"
 
 def one_to_one(df, home_team: str, away_team:str, total: bool = False):
