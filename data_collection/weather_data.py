@@ -42,65 +42,19 @@ all_data_df = pd.read_csv("/Users/admin/git_projects/football/data_collection/se
 all_data_df = all_data_df.dropna(subset=['Date'])
         
 
-def fetch_weather_data(lat, lon, date):
-    formatted_date = pd.to_datetime(date).strftime('%Y-%m-%d')
-    url = f"https://archive-api.open-meteo.com/v1/archive?latitude={lat}&longitude={lon}&start_date={formatted_date}&end_date={formatted_date}&timezone=Europe%2FBerlin&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max"
-    
-    response = requests.get(url)
-    print(response)
-    if response.status_code == 200:
-        sleep(0.5)  # service's rate limit
-        data = response.json()
-        daily_data = data.get('daily', {})
-        weather_data = {
-            'temperature_2m_max': daily_data.get('temperature_2m_max', [None])[0],
-            'temperature_2m_min': daily_data.get('temperature_2m_min', [None])[0],
-            'precipitation_sum': daily_data.get('precipitation_sum', [None])[0],
-            'wind_speed_10m_max': daily_data.get('wind_speed_10m_max', [None])[0],
-        }
-        return weather_data
-    else:
-        return {'temperature_2m_max': None, 'temperature_2m_min': None, 'precipitation_sum': None, 'wind_speed_10m_max': None}
-
-from tqdm import tqdm
-import pandas as pd
-
-def fetch_and_merge_weather_data(all_data_df, fetch_weather_data):
-    """
-    Fetches weather data for each row in the input DataFrame and merges it back.
-
-    Parameters:
-    - all_data_df (pd.DataFrame): DataFrame containing the game data with latitude, longitude, and date.
-    - fetch_weather_data (function): Function to fetch weather data given latitude, longitude, and date.
-
-    Returns:
-    - pd.DataFrame: The input DataFrame merged with the fetched weather data.
-    """
-
-    weather_data_list = []
-
-    # Iterate over the DataFrame rows with a progress bar
-    for index, row in tqdm(all_data_df.iterrows(), total=all_data_df.shape[0]):
-        weather_data = fetch_weather_data(row['lat'], row['lon'], row['Date'])
-        print(weather_data)
-        weather_data['game_id'] = row['game_id']
-        weather_data_list.append(weather_data)
-
-    # Convert the list of weather data to a DataFrame
-    weather_data_df = pd.DataFrame(weather_data_list)
-
-    # Merge the weather data with the original DataFrame
-    merged_df = (
-        pd
-        .merge(all_data_df, weather_data_df, on='game_id')
-        .assign(avg_temp=lambda df_: (df_['temperature_2m_max'] + df_['temperature_2m_min']) / 2,
-                Date=pd.to_datetime(all_data_df['Date'], dayfirst=True))
-    )
-
-    return merged_df
-
 
 def fetch_weather_data(name, date, api_key="ZMM2U9XUSJ6UV37L4L49NQACY"):
+    """
+    Fetches weather data for a specific location and date.
+
+    Args:
+        name (str): The name of the location.
+        date (str): The date for which weather data is requested (format: 'YYYY-MM-DD').
+        api_key (str, optional): The API key for accessing the weather data service. Defaults to "ZMM2U9XUSJ6UV37L4L49NQACY".
+
+    Returns:
+        dict or None: A dictionary containing the weather data for the specified location and date, or None if the data is not available.
+    """
     formatted_date = pd.to_datetime(date).strftime('%Y-%m-%d')
     url = f"https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/{name}/{formatted_date}/{formatted_date}?unitGroup=metric&key={api_key}&options=preview&contentType=json"
 
@@ -115,7 +69,6 @@ def fetch_weather_data(name, date, api_key="ZMM2U9XUSJ6UV37L4L49NQACY"):
         sleep(0.5)  # Respect the service's rate limit
         data = response.json()
         hours_data = data.get('days', [{}])[0].get('hours', [])
-        # print(hours_data)
         midday_data = next((hour for hour in hours_data if hour['datetime'].endswith('13:00:00')), None)
         if midday_data:
             # Extract the relevant fields from the midday data

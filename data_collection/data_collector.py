@@ -119,7 +119,10 @@ class DataCollector:
             pandas.DataFrame: The processed data as a DataFrame.
         """
         all_data_df = pd.concat(self.all_data, ignore_index=True).dropna(subset=["Date"])
-        all_data_df = all_data_df.assign(
+        all_data_df = (
+            all_data_df
+            [all_data_df["Date"].notna()]
+            .assign(
             Div=self.league,
             Date=lambda x: pd.to_datetime(x["Date"], dayfirst=True),
             season=lambda x: [
@@ -141,7 +144,7 @@ class DataCollector:
             lon=all_data_df["HomeTeam"].map(
                 lambda x: cities[x]["lon"] if x in cities else None
             ),
-        ).dropna(how="all", axis=1)
+        )).dropna(how="all", axis=1)
         cols = (
             ["game_id"]
             + [col for col in all_data_df.columns if col not in ["game_id", "TG"]][:4]
@@ -214,7 +217,7 @@ class DataCollector:
 if __name__ == "__main__":
     # example usage
     dc = DataCollector(league="serie_a")
-    data = dc.collect_data(2020, 2023, write_csv=False)
+    data = dc.collect_data(2003, 2023, write_csv=False)
     # sample output
     teams_stats = dc.compute_team_statistics(data)
 
