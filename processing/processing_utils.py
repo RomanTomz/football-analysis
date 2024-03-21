@@ -33,6 +33,8 @@ class MatchHistory:
     def __init__(self, data_path: str):
         
         self.df = pd.read_csv(data_path)
+        self.home_team = None
+        self.away_team = None
     
     def one_to_one(self, home_team: str, away_team:str, total: bool = False):
         """
@@ -45,12 +47,17 @@ class MatchHistory:
         Returns:
         DataFrame: A DataFrame containing the one-to-one match history between the two teams.
         """
+        self.home_team = home_team
+        self.away_team = away_team
+        
         if total:
-            return self.df.query(f"(HomeTeam == '{home_team}' and AwayTeam == '{away_team}') or (HomeTeam == '{away_team}' and AwayTeam == '{home_team}')")
+            self.head_to_head = self.df.query(f"(HomeTeam == '{home_team}' and AwayTeam == '{away_team}') or (HomeTeam == '{away_team}' and AwayTeam == '{home_team}')")
         else:
-            return self.df.query(f"(HomeTeam == '{home_team}' and AwayTeam == '{away_team}')")
+            self.head_to_head = self.df.query(f"(HomeTeam == '{home_team}' and AwayTeam == '{away_team}')")
+            
+        return self.head_to_head
     
-    def match_stats(self, match_df):
+    def match_stats(self):
         """
         Returns the match statistics for a given match DataFrame.
 
@@ -60,14 +67,29 @@ class MatchHistory:
         Returns:
         dict: A dictionary containing the match statistics.
         """
-        stats = {
-            "home_goals": match_df["FTHG"].sum(),
-            "away_goals": match_df["FTAG"].sum(),
-        }
-        
+        if self.head_to_head is None or self.head_to_head.empty:
+            raise ValueError("No head-to-head data. Please run one_to_one method first.")
+
+        home_wins = len(self.head_to_head.query(f"(HomeTeam == '{self.home_team}' and AwayTeam == '{self.away_team}' and FTR == 'H') or (HomeTeam == '{self.away_team}' and AwayTeam == '{self.home_team}' and FTR == 'A')"))
+        away_wins = len(self.head_to_head.query(f"(AwayTeam == '{self.away_team}' and HomeTeam == '{self.home_team}' and FTR == 'A') or (AwayTeam == '{self.home_team}' and HomeTeam == '{self.away_team}' and FTR == 'H')"))
+        draws = len(self.head_to_head.query(f"(HomeTeam == '{self.home_team}' and AwayTeam == '{self.away_team}' and FTR == 'D') or (HomeTeam == '{self.away_team}' and AwayTeam == '{self.home_team}' and FTR == 'D')"))
+
+        # Calculate the total goals
+        home_goals = self.head_to_head.query(f"HomeTeam == '{self.home_team}'")['FTHG'].sum() + self.head_to_head.query(f"AwayTeam == '{self.home_team}'")['FTAG'].sum()
+        away_goals = self.head_to_head.query(f"AwayTeam == '{self.away_team}'")['FTAG'].sum() + self.head_to_head.query(f"HomeTeam == '{self.away_team}'")['FTHG'].sum()
+
+        stats = pd.DataFrame({
+            'Total Matches': [len(self.head_to_head)],
+            'Home Wins': [home_wins],
+            'Away Wins': [away_wins],
+            'Draws': [draws],
+            'Home Goals': [home_goals],
+            'Away Goals': [away_goals]
+        })
+
         return stats
     
 history = MatchHistory(path)
-print(match_df := history.one_to_one("Juventus", "Inter", total=True))
-stats = history.match_stats(match_df)
+print(match_df := history.one_to_one("Reggina", "Inter", total=True))  
+stats = history.match_stats()  
 print(stats)
