@@ -5,34 +5,16 @@ sys.path.append(root_path)
 
 import pandas as pd
 
-from data_collection.data_reader import collect_data
+import plotly.graph_objects as go
+
+from data_collection.data_collector import DataCollector
 
 
-path = "/Users/admin/git_projects/football/data_collection/serie_a.csv"
-
-def one_to_one(df, home_team: str, away_team:str, total: bool = False):
-    """
-    Returns a DataFrame containing the one-to-one match history between two teams.
-
-    Parameters:
-    df (DataFrame): The input DataFrame containing the match history.
-    home_team (str): The name of the home team.
-    away_team (str): The name of the away team.
-
-    Returns:
-    DataFrame: A DataFrame containing the one-to-one match history between the two teams.
-    """
-    if total:
-        return df.query(f"(HomeTeam == '{home_team}' and AwayTeam == '{away_team}') or (HomeTeam == '{away_team}' and AwayTeam == '{home_team}')")
-    else:
-        return df.query(f"(HomeTeam == '{home_team}' and AwayTeam == '{away_team}')")
-
-# print(one_to_one(df, "Juventus", "Inter", total=True))
 
 class MatchHistory:
-    def __init__(self, data_path: str):
+    def __init__(self, df: pd.DataFrame):
         
-        self.df = pd.read_csv(data_path)
+        self.df = df
         self.home_team = None
         self.away_team = None
     
@@ -85,9 +67,38 @@ class MatchHistory:
         })
 
         return stats
+    
+    def head_to_head_viz(self):
+        
+        fig = go.Figure()
+        
+        fig.add_trace(
+            go.Bar(
+                x=self.head_to_head['FTR'].value_counts().index,
+                y=self.head_to_head['FTR'].value_counts().values,
+            )
+        )
+        
+        fig.update_layout(
+            title=f"{self.home_team} vs {self.away_team} Head-to-Head",
+            xaxis_title="Result",
+            yaxis_title="Count",
+            barmode="group"
+        )
+        
+        fig.show()
+        
 
 if __name__ == "__main__":
-    history = MatchHistory(path)
-    print(match_df := history.one_to_one("Lazio", "Inter", total=True))  
-    stats = history.match_stats()  
+    collector = DataCollector('serie_a')
+    df = collector.collect_data(2003, 2023)
+    match_history = MatchHistory(df)
+    match = match_history.one_to_one('Juventus', 'Milan', total=True)
+    print(match)
+    stats = match_history.match_stats()
     print(stats)
+    fig = match_history.head_to_head_viz()
+    fig.show()
+    
+
+
