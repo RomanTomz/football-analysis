@@ -61,9 +61,6 @@ class MatchHistory:
         """
         Returns the match statistics for a given match DataFrame.
 
-        Parameters:
-        match_df (DataFrame): The DataFrame containing the match data.
-
         Returns:
         dict: A dictionary containing the match statistics.
         """
@@ -88,8 +85,9 @@ class MatchHistory:
         })
 
         return stats
-    
-history = MatchHistory(path)
-print(match_df := history.one_to_one("Reggina", "Inter", total=True))  
-stats = history.match_stats()  
-print(stats)
+
+if __name__ == "__main__":
+    history = MatchHistory(path)
+    print(match_df := history.one_to_one("Lazio", "Inter", total=True))  
+    stats = history.match_stats()  
+    print(stats)
