@@ -108,6 +108,7 @@ class DataCollector:
         else:
             raise ValueError("Invalid league. Must be 'serie_a' or 'epl'.")
 
+
     def _process_data(self, write_csv: bool) -> pd.DataFrame:
         """
         Processes the collected data and returns a DataFrame.
@@ -118,48 +119,53 @@ class DataCollector:
         Returns:
             pandas.DataFrame: The processed data as a DataFrame.
         """
-        all_data_df = pd.concat(self.all_data, ignore_index=True).dropna(subset=["Date"])
-        all_data_df = (
-            all_data_df
-            [all_data_df["Date"].notna()]
-            .assign(
+        if not self.all_data:
+            return pd.DataFrame()  # Return an empty DataFrame if there's no data
+
+        all_data_df = pd.concat(self.all_data, ignore_index=True)
+        all_data_df = all_data_df[all_data_df["Date"].notna()]
+
+        # Process the DataFrame
+        all_data_df = all_data_df.assign(
             Div=self.league,
             Date=lambda x: pd.to_datetime(x["Date"], dayfirst=True),
             season=lambda x: [
-                (
-                    f"{date.year}/{str(date.year + 1)}"
-                    if date.month >= 8
-                    else f"{date.year - 1}/{date.year}"
-                )
+                f"{date.year}/{str(date.year + 1)}"
+                if date.month >= 8 else f"{date.year - 1}/{date.year}"
                 for date in pd.to_datetime(x["Date"], dayfirst=True)
             ],
             game_id=[uuid.uuid4().hex[:8] for _ in range(len(all_data_df))],
             TG=all_data_df["FTHG"] + all_data_df["FTAG"],
             city_name=all_data_df["HomeTeam"].map(
-                lambda x: cities[x]["name"] if x in cities else None
+                lambda x: cities.get(x, {}).get("name")
             ),
             lat=all_data_df["HomeTeam"].map(
-                lambda x: cities[x]["lat"] if x in cities else None
+                lambda x: cities.get(x, {}).get("lat")
             ),
             lon=all_data_df["HomeTeam"].map(
-                lambda x: cities[x]["lon"] if x in cities else None
+                lambda x: cities.get(x, {}).get("lon")
             ),
-        )).dropna(how="all", axis=1)
+        ).dropna(how="all", axis=1)
+
+        # Define the order of columns
         cols = (
-            ["game_id"]
-            + [col for col in all_data_df.columns if col not in ["game_id", "TG"]][:4]
-            + ["TG"]
-            + [
-                col for col in all_data_df.columns if col not in ["game_id", "TG", "TG"]
-            ][4:]
+            ["game_id"] +
+            [col for col in all_data_df.columns if col not in ["game_id", "TG"]][:4] +
+            ["TG"] +
+            [col for col in all_data_df.columns if col not in ["game_id", "TG", "TG"]][4:]
         )
 
+        # Reorder the DataFrame based on defined columns
         all_data_df = all_data_df[cols]
+
+    # Optionally write to CSV
         if write_csv:
             filename = f"{self.league}.csv"
             all_data_df.to_csv(filename, index=False)
             print(f"Data written to {filename}")
+
         return all_data_df
+
 
     @staticmethod
     def compute_team_statistics(df, year_start=None, year_end=None):
@@ -217,7 +223,7 @@ class DataCollector:
 if __name__ == "__main__":
     # example usage
     dc = DataCollector(league="serie_a")
-    data = dc.collect_data(2003, 2023, write_csv=False)
+    data = dc.collect_data(2015, 2023, write_csv=True)
     # sample output
     teams_stats = dc.compute_team_statistics(data)
 

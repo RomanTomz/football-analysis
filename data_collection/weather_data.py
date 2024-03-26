@@ -38,7 +38,7 @@ def get_coordinates(cities_dict: dict):
 
     return cities_dict
 
-all_data_df = pd.read_csv("/Users/admin/git_projects/football/data_collection/serie_a.csv")
+all_data_df = pd.read_csv("/Users/admin/git_projects/football/data_collection/data/serie_a.csv")
 all_data_df = all_data_df.dropna(subset=['Date'])
         
 
@@ -122,4 +122,4 @@ def fetch_and_merge_weather_data(all_data_df, fetch_weather_data):
     return merged_df
 
 merged_df = fetch_and_merge_weather_data(all_data_df, fetch_weather_data)
-merged_df.to_csv("/Users/admin/git_projects/football/data_collection/serie_a_weather.csv", index=False)
+merged_df.to_csv("/Users/admin/git_projects/football/data_collection/data/serie_a_weather.csv", index=False)
