@@ -4,5 +4,6 @@
 .vscode/
 __pycache__/
 Premier League_*.csv
+*.db
 
 *.csv
