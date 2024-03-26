@@ -4,6 +4,7 @@ root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(root_path)
 
 import pandas as pd
+import numpy as np
 
 import plotly.graph_objects as go
 
@@ -11,62 +12,43 @@ from data_collection.data_collector import DataCollector
 
 
 
+import pandas as pd
+import plotly.graph_objects as go
+
 class MatchHistory:
     def __init__(self, df: pd.DataFrame):
-        
         self.df = df
-        self.home_team = None
-        self.away_team = None
-    
-    def one_to_one(self, home_team: str, away_team:str, total: bool = False):
-        """
-        Returns a DataFrame containing the one-to-one match history between two teams.
 
-        Parameters:
-        home_team (str): The name of the home team.
-        away_team (str): The name of the away team.
-
-        Returns:
-        DataFrame: A DataFrame containing the one-to-one match history between the two teams.
-        """
-        self.home_team = home_team
-        self.away_team = away_team
-        
+    def one_to_one(self, home_team: str, away_team: str, total: bool = False):
         if total:
-            self.head_to_head = self.df.query(f"(HomeTeam == '{home_team}' and AwayTeam == '{away_team}') or (HomeTeam == '{away_team}' and AwayTeam == '{home_team}')")
+            head_to_head = self.df.query(f"(HomeTeam == '{home_team}' and AwayTeam == '{away_team}') or (HomeTeam == '{away_team}' and AwayTeam == '{home_team}')")
         else:
-            self.head_to_head = self.df.query(f"(HomeTeam == '{home_team}' and AwayTeam == '{away_team}')")
-            
-        return self.head_to_head
-    
-    def match_stats(self):
-        """
-        Returns the match statistics for a given match DataFrame.
+            head_to_head = self.df.query(f"(HomeTeam == '{home_team}' and AwayTeam == '{away_team}')")
+        return head_to_head.copy()
 
-        Returns:
-        dict: A dictionary containing the match statistics.
-        """
-        if self.head_to_head is None or self.head_to_head.empty:
-            raise ValueError("No head-to-head data. Please run one_to_one method first.")
+    def match_stats(self, head_to_head: pd.DataFrame, home_team: str, away_team: str):
+        if head_to_head.empty:
+            return pd.DataFrame()
 
-        home_wins = len(self.head_to_head.query(f"(HomeTeam == '{self.home_team}' and AwayTeam == '{self.away_team}' and FTR == 'H') or (HomeTeam == '{self.away_team}' and AwayTeam == '{self.home_team}' and FTR == 'A')"))
-        away_wins = len(self.head_to_head.query(f"(AwayTeam == '{self.away_team}' and HomeTeam == '{self.home_team}' and FTR == 'A') or (AwayTeam == '{self.home_team}' and HomeTeam == '{self.away_team}' and FTR == 'H')"))
-        draws = len(self.head_to_head.query(f"(HomeTeam == '{self.home_team}' and AwayTeam == '{self.away_team}' and FTR == 'D') or (HomeTeam == '{self.away_team}' and AwayTeam == '{self.home_team}' and FTR == 'D')"))
+        # Directly modify the copy
+        head_to_head['Result'] = np.select(
+            [
+                (head_to_head['HomeTeam'] == home_team) & (head_to_head['FTR'] == 'H'),
+                (head_to_head['AwayTeam'] == home_team) & (head_to_head['FTR'] == 'A'),
+                (head_to_head['AwayTeam'] == away_team) & (head_to_head['FTR'] == 'A'),
+                (head_to_head['HomeTeam'] == away_team) & (head_to_head['FTR'] == 'H'),
+                (head_to_head['FTR'] == 'D')
+            ], 
+            ['Home Wins', 'Home Wins', 'Away Wins', 'Away Wins', 'Draws'],
+            default='Draw'
+        )
 
-        # Calculate the total goals
-        home_goals = self.head_to_head.query(f"HomeTeam == '{self.home_team}'")['FTHG'].sum() + self.head_to_head.query(f"AwayTeam == '{self.home_team}'")['FTAG'].sum()
-        away_goals = self.head_to_head.query(f"AwayTeam == '{self.away_team}'")['FTAG'].sum() + self.head_to_head.query(f"HomeTeam == '{self.away_team}'")['FTHG'].sum()
-
-        stats = pd.DataFrame({
-            'Total Matches': [len(self.head_to_head)],
-            'Home Wins': [home_wins],
-            'Away Wins': [away_wins],
-            'Draws': [draws],
-            'Home Goals': [home_goals],
-            'Away Goals': [away_goals]
-        })
-
+        stats = head_to_head['Result'].value_counts().rename_axis('Result').reset_index(name='Counts')
         return stats
+
+
+    
+
     
     def head_to_head_viz(self):
         
