@@ -268,7 +268,7 @@ class DataCollector:
 
 if __name__ == "__main__":
     # example usage
-    dc = DataCollector(league="serie_a")
+    dc = DataCollector(league="epl")
     # data = dc.collect_data(2015, 2023, write_csv=False)
     # sample output
     # teams_stats = dc.compute_team_statistics(data)
