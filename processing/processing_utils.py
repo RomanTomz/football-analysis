@@ -46,29 +46,6 @@ class MatchHistory:
         stats = head_to_head['Result'].value_counts().rename_axis('Result').reset_index(name='Counts')
         return stats
 
-
-    
-
-    
-    def head_to_head_viz(self):
-        
-        fig = go.Figure()
-        
-        fig.add_trace(
-            go.Bar(
-                x=self.head_to_head['FTR'].value_counts().index,
-                y=self.head_to_head['FTR'].value_counts().values,
-            )
-        )
-        
-        fig.update_layout(
-            title=f"{self.home_team} vs {self.away_team} Head-to-Head",
-            xaxis_title="Result",
-            yaxis_title="Count",
-            barmode="group"
-        )
-        
-        fig.show()
         
 
 if __name__ == "__main__":

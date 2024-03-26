@@ -1,0 +1,9 @@
+/football
+/.ipynb_checkpoints
+/notebooks/.ipynb_checkpoints
+.vscode/
+__pycache__/
+Premier League_*.csv
+*.db
+
+*.csv
