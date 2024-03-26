@@ -3,6 +3,9 @@ import requests
 from io import StringIO
 import uuid
 
+import sqlite3
+from sqlite3 import Error
+
 from tqdm import tqdm
 from time import sleep
 
@@ -29,7 +32,7 @@ class DataCollector:
         _process_data(write_csv): Processes the collected data and returns a DataFrame.
     """
 
-    def __init__(self, league: str):
+    def __init__(self, league: str, db_path=None):
         """
         Initializes a DataCollector object.
 
@@ -38,9 +41,20 @@ class DataCollector:
         """
         self.league = league
         self.all_data = []
+        self.db_path = os.path.join(root_path, "data_collection", "data", f"{league}.db")
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
         }
+        
+    def create_connection(self):
+        conn = None
+        try:
+            conn = sqlite3.connect(self.db_path)
+            print(f"Connection to {self.db_path} successful")
+        except Error as e:
+            print(f"The error '{e}' occurred")
+        
+        return conn
 
     def collect_data(self, year_start: int, year_end: int, write_csv=False):
         """
@@ -165,8 +179,40 @@ class DataCollector:
             print(f"Data written to {filename}")
 
         return all_data_df
-
-
+    
+    def write_to_db(self, df: pd.DataFrame):
+        
+        conn = self.create_connection()
+        if conn is not None:
+            df.to_sql(f'{self.league}_data', conn, if_exists='append', index=False)
+            print(f"Data written to {self.league}.db")
+            conn.close()
+        else:
+            print("Connection failed")
+            
+    def collect_and_update_data(self, year_start: int, year_end: int):
+        """Collects and updates the data in the database."""
+        new_data = self.collect_data(year_start, year_end, write_csv=False)
+        
+        conn = self.create_connection()
+        if conn is not None:
+            # Check if the table exists
+            table_exists_query = f"SELECT name FROM sqlite_master WHERE type='table' AND name='{self.league}_data';"
+            if conn.execute(table_exists_query).fetchone() is None:
+                # If the table doesn't exist, create it by writing the new data with if_exists='replace'
+                new_data.to_sql(f'{self.league}_data', conn, if_exists='replace', index=False)
+            else:
+                # If the table exists, proceed to check and append new data
+                existing_data = pd.read_sql_query(f"SELECT * FROM {self.league}_data", conn)
+                new_data_filtered = new_data[~new_data['game_id'].isin(existing_data['game_id'])]
+                if not new_data_filtered.empty:
+                    self.write_to_database(new_data_filtered)
+                else:
+                    print("No new data to update.")
+            conn.close()
+        else:
+            print("Error! cannot create the database connection.")
+        
     @staticmethod
     def compute_team_statistics(df, year_start=None, year_end=None):
         """
@@ -223,8 +269,8 @@ class DataCollector:
 if __name__ == "__main__":
     # example usage
     dc = DataCollector(league="serie_a")
-    data = dc.collect_data(2015, 2023, write_csv=True)
+    # data = dc.collect_data(2015, 2023, write_csv=False)
     # sample output
-    teams_stats = dc.compute_team_statistics(data)
+    # teams_stats = dc.compute_team_statistics(data)
+    dc.collect_and_update_data(2003, 2023)
 
-    print(data.head())
