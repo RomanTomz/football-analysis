@@ -33,11 +33,6 @@ teams = get_teams(league, year_start, year_end)
 home_team = st.selectbox('Select Home Team', teams)
 away_team = st.selectbox('Select Away Team', teams)
 
-# Function to fetch league-wide data
-@st.cache_data()
-def fetch_league_data(league, year_start, year_end):
-    return history.fetch_league_data(league, year_start, year_end)
-
 # Function to fetch head-to-head data
 @st.cache_data()
 def fetch_head_to_head_data(league, home_team, away_team, year_start, year_end):
@@ -55,7 +50,7 @@ def fetch_head_to_head_data(league, home_team, away_team, year_start, year_end):
 
 # Assuming you've fetched the league data already
 with st.spinner('Fetching data...'):
-    league_data = fetch_league_data(league, year_start, year_end)
+    league_data = history.fetch_league_data(league, year_start, year_end)
     if not league_data.empty:
         # Use MatchHistory class for head-to-head analysis
         match_history = MatchHistory(league_data)
