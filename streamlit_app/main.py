@@ -4,10 +4,11 @@ import sqlite3
 import pandas as pd
 import streamlit as st
 
+
 root_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(root_path)
 
-
+from charts.data_viz import plot_high_level_stats, plot_goals
 from data_collection.data_collector import DataCollector
 from processing.processing_utils import MatchHistory
 
@@ -17,6 +18,7 @@ league = st.radio('Select the league', ('epl', 'serie_a'))
 
 # Initialize the data collector for the selected league
 collector = DataCollector(league)
+history = MatchHistory(pd.DataFrame())
 
 # Slider for selecting the year range
 min_year, max_year = 2003, 2023
@@ -24,26 +26,17 @@ year_start, year_end = st.slider('Select the year range', min_value=min_year, ma
 
 # Function to get teams
 @st.cache_data()
-def get_teams(league):
-    db_path = os.path.join(root_path, 'data_collection', 'data', f'{league}.db')
-    conn = sqlite3.connect(db_path)
-    teams = pd.read_sql_query(f"SELECT DISTINCT HomeTeam FROM {league}_data", conn)
-    conn.close()
-    return teams['HomeTeam'].sort_values().tolist()
+def get_teams(league, year_start, year_end):
+    return history.get_teams(league, year_start, year_end)
 
-teams = get_teams(league)
+teams = get_teams(league, year_start, year_end)
 home_team = st.selectbox('Select Home Team', teams)
 away_team = st.selectbox('Select Away Team', teams)
 
 # Function to fetch league-wide data
 @st.cache_data()
 def fetch_league_data(league, year_start, year_end):
-    db_path = os.path.join(root_path, 'data_collection', 'data', f'{league}.db')
-    conn = sqlite3.connect(db_path)
-    query = f"SELECT * FROM {league}_data WHERE season >= '{year_start}' AND season <= '{year_end}'"
-    data = pd.read_sql_query(query, conn)
-    conn.close()
-    return data
+    return history.fetch_league_data(league, year_start, year_end)
 
 # Function to fetch head-to-head data
 @st.cache_data()

@@ -6,18 +6,31 @@ sys.path.append(root_path)
 import pandas as pd
 import numpy as np
 
-import plotly.graph_objects as go
+import sqlite3
 
 from data_collection.data_collector import DataCollector
-
-
 
 import pandas as pd
 import plotly.graph_objects as go
 
 class MatchHistory:
-    def __init__(self, df: pd.DataFrame):
+    def __init__(self, df):
         self.df = df
+        
+    def get_teams(self, league, year_start, year_end):
+        db_path = os.path.join(root_path, 'data_collection', 'data', f'{league}.db')
+        conn = sqlite3.connect(db_path)
+        teams = pd.read_sql_query(f"SELECT DISTINCT HomeTeam FROM {league}_data WHERE season>='{year_start}' AND season <= '{year_end}'", conn)
+        conn.close()
+        return teams['HomeTeam'].sort_values().tolist()
+    
+    def fetch_league_data(self, league, year_start, year_end):
+        db_path = os.path.join(root_path, 'data_collection', 'data', f'{league}.db')
+        conn = sqlite3.connect(db_path)
+        query = f"SELECT * FROM {league}_data WHERE season >= '{year_start}' AND season <= '{year_end}'"
+        data = pd.read_sql_query(query, conn)
+        conn.close()
+        return data
 
     def one_to_one(self, home_team: str, away_team: str, total: bool = False):
         if total:
