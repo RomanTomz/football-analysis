@@ -12,9 +12,10 @@ from data_collection.data_collector import DataCollector
 
 
 class MatchHistory:
-    def __init__(self, df):
+    def __init__(self, league, df):
         self.df = df
-        self.db_path = os.path.join(root_path, 'data_collection', 'data', 'serie_a.db')
+        self.league = league
+        self.db_path = os.path.join(root_path, 'data_collection', 'data', f'{league}.db')
         
     def get_teams(self, league, year_start, year_end):
         conn = sqlite3.connect(self.db_path)
@@ -29,12 +30,19 @@ class MatchHistory:
         conn.close()
         return data
 
-    def one_to_one(self, home_team: str, away_team: str, total: bool = False):
-        if total:
-            head_to_head = self.df.query(f"(HomeTeam == '{home_team}' and AwayTeam == '{away_team}') or (HomeTeam == '{away_team}' and AwayTeam == '{home_team}')")
-        else:
-            head_to_head = self.df.query(f"(HomeTeam == '{home_team}' and AwayTeam == '{away_team}')")
-        return head_to_head.copy()
+    def fetch_head_to_head_data(self, home_team: str, away_team: str, total: bool = False):
+        table_name = f"{self.league}_data"  # Dynamic table name based on the league
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                if total:
+                    query = f"SELECT * FROM {table_name} WHERE ((HomeTeam = '{home_team}' AND AwayTeam = '{away_team}') OR (HomeTeam = '{away_team}' AND AwayTeam = '{home_team}'))"
+                else:
+                    query = f"SELECT * FROM {table_name} WHERE HomeTeam = '{home_team}' AND AwayTeam = '{away_team}'"
+                head_to_head = pd.read_sql_query(query, conn)
+            return head_to_head
+        except Exception as e:
+            print(f"An error occurred: {e}")
+            return pd.DataFrame() 
 
     def match_stats(self, head_to_head: pd.DataFrame, home_team: str, away_team: str):
         if head_to_head.empty:
@@ -62,12 +70,8 @@ if __name__ == "__main__":
     collector = DataCollector('serie_a')
     df = collector.collect_data(2003, 2023)
     match_history = MatchHistory(df)
-    match = match_history.one_to_one('Juventus', 'Milan', total=True)
-    print(match)
-    stats = match_history.match_stats()
-    print(stats)
-    fig = match_history.head_to_head_viz()
-    fig.show()
+
+
     
 
 

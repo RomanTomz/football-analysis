@@ -18,7 +18,7 @@ league = st.radio('Select the league', ('epl', 'serie_a'))
 
 # Initialize the data collector for the selected league
 collector = DataCollector(league)
-history = MatchHistory(pd.DataFrame())
+history = MatchHistory(league = league, df = pd.DataFrame())
 
 # Slider for selecting the year range
 min_year, max_year = 2003, 2023
@@ -35,26 +35,16 @@ away_team = st.selectbox('Select Away Team', teams)
 
 # Function to fetch head-to-head data
 @st.cache_data()
-def fetch_head_to_head_data(league, home_team, away_team, year_start, year_end):
-    db_path = os.path.join(root_path, 'data_collection', 'data', f'{league}.db')
-    conn = sqlite3.connect(db_path)
-    query = f"""
-    SELECT * FROM {league}_data
-    WHERE season >= '{year_start}' AND season <= '{year_end}'
-    AND ((HomeTeam = '{home_team}' AND AwayTeam = '{away_team}')
-         OR (HomeTeam = '{away_team}' AND AwayTeam = '{home_team}'))
-    """
-    data = pd.read_sql_query(query, conn)
-    conn.close()
-    return data
+def fetch_head_to_head_data(home_team, away_team, year_start, year_end, total=False):
+    return history.fetch_head_to_head_data(home_team, away_team, total)
 
 # Assuming you've fetched the league data already
 with st.spinner('Fetching data...'):
     league_data = history.fetch_league_data(league, year_start, year_end)
     if not league_data.empty:
         # Use MatchHistory class for head-to-head analysis
-        match_history = MatchHistory(league_data)
-        head_to_head_data = match_history.one_to_one(home_team, away_team)
+        match_history = MatchHistory(league, league_data)
+        head_to_head_data = match_history.fetch_head_to_head_data(home_team, away_team)
         stats = match_history.match_stats(head_to_head_data, home_team, away_team)
         
         if st.button('Show Head-to-Head Stats'):
