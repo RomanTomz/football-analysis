@@ -18,32 +18,38 @@ class MatchHistory:
         self.db_path = os.path.join(root_path, 'data_collection', 'data', f'{league}.db')
         
     def get_teams(self, league, year_start, year_end):
-        conn = sqlite3.connect(self.db_path)
-        teams = pd.read_sql_query(f"SELECT DISTINCT HomeTeam FROM {league}_data WHERE season>='{year_start}' AND season <= '{year_end}'", conn)
-        conn.close()
+        query = f"SELECT DISTINCT HomeTeam FROM {league}_data WHERE season>='{year_start}' AND season <= '{year_end}'"
+        with sqlite3.connect(self.db_path) as conn:
+            teams = pd.read_sql_query(query, conn)
         return teams['HomeTeam'].sort_values().tolist()
     
     def fetch_league_data(self, league, year_start, year_end):
-        conn = sqlite3.connect(self.db_path)
         query = f"SELECT * FROM {league}_data WHERE season >= '{year_start}' AND season <= '{year_end}'"
-        data = pd.read_sql_query(query, conn)
-        conn.close()
+        with sqlite3.connect(self.db_path) as conn:
+            data = pd.read_sql_query(query, conn)
         return data
+# TODO: modify fetch_head_to_head_data to respond to year_start and year_end dynamically
+    def fetch_head_to_head_data(self, home_team: str, away_team: str, year_start: int, year_end: int, total: bool = False):
+        with sqlite3.connect(self.db_path) as conn:
+            if total:
+                query = f"""
+                SELECT * FROM {self.league}_data 
+                WHERE 
+                ((HomeTeam = '{home_team}' AND AwayTeam = '{away_team}') 
+                OR (HomeTeam = '{away_team}' AND AwayTeam = '{home_team}'))
+                AND season >= '{year_start}' AND season <= '{year_end}'
+                """
+            else:
+                query = f"""
+                SELECT * FROM {self.league}_data 
+                WHERE 
+                HomeTeam = '{home_team}' AND AwayTeam = '{away_team}'
+                AND season >= '{year_start}' AND season <= '{year_end}'
+                """
+            head_to_head = pd.read_sql_query(query, conn)
+        return head_to_head
 
-    def fetch_head_to_head_data(self, home_team: str, away_team: str, total: bool = False):
-        table_name = f"{self.league}_data"  # Dynamic table name based on the league
-        try:
-            with sqlite3.connect(self.db_path) as conn:
-                if total:
-                    query = f"SELECT * FROM {table_name} WHERE ((HomeTeam = '{home_team}' AND AwayTeam = '{away_team}') OR (HomeTeam = '{away_team}' AND AwayTeam = '{home_team}'))"
-                else:
-                    query = f"SELECT * FROM {table_name} WHERE HomeTeam = '{home_team}' AND AwayTeam = '{away_team}'"
-                head_to_head = pd.read_sql_query(query, conn)
-            return head_to_head
-        except Exception as e:
-            print(f"An error occurred: {e}")
-            return pd.DataFrame() 
-
+# TODO: modify match_stats to query the database directly
     def match_stats(self, head_to_head: pd.DataFrame, home_team: str, away_team: str):
         if head_to_head.empty:
             return pd.DataFrame()
